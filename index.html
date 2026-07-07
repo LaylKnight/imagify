@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Imagify - Image Optimizer & Thumbnail Generator</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class'
+    }
+  </script>
+</head>
+<body class="dark bg-gray-900 text-gray-100">
+  <div class="min-h-screen py-8 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-2xl mx-auto">
+      <!-- Header -->
+      <div class="text-center mb-8">
+        <h1 class="text-4xl font-bold text-white mb-2">Imagify</h1>
+        <p class="text-gray-400">Optimize and resize your images instantly</p>
+      </div>
+
+      <!-- Main Container -->
+      <div class="bg-gray-800 rounded-lg shadow-xl p-8">
+        <!-- Error Message Display -->
+        <div id="errorContainer" class="hidden mb-6 p-4 bg-red-900 border border-red-700 rounded-lg">
+          <p id="errorMessage" class="text-red-100"></p>
+        </div>
+
+        <!-- File Upload Section -->
+        <div class="mb-8">
+          <label class="block text-sm font-medium text-gray-300 mb-2">Upload Image</label>
+          <div
+            id="dropZone"
+            class="border-2 border-dashed border-gray-600 rounded-lg p-8 text-center cursor-pointer hover:border-gray-500 transition bg-gray-700 hover:bg-gray-600"
+          >
+            <svg class="mx-auto h-12 w-12 text-gray-400 mb-2" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+              <path d="M28 8H12a4 4 0 00-4 4v20a4 4 0 004 4h24a4 4 0 004-4V20" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M16 26l6-6 6 6M22 16v16" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <p class="text-gray-300 mb-1">Drag and drop your image here</p>
+            <p class="text-gray-400 text-sm">or click to select</p>
+            <input
+              id="fileInput"
+              type="file"
+              accept="image/*"
+              class="hidden"
+            >
+          </div>
+          <p class="text-gray-500 text-xs mt-2">Max file size: 10MB. Supported formats: JPG, PNG, WebP, GIF</p>
+        </div>
+
+        <!-- Image Controls (Hidden until image uploaded) -->
+        <div id="controlsContainer" class="hidden space-y-6">
+          <!-- Dimensions -->
+          <div class="flex gap-4 items-start">
+            <div class="flex-1">
+              <label for="width" class="block text-sm font-medium text-gray-300 mb-2">Width (px)</label>
+              <input
+                id="width"
+                type="text"
+                placeholder="0"
+                class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-blue-500"
+              >
+              <p id="widthError" class="text-red-400 text-xs mt-1 hidden"></p>
+            </div>
+            <button
+              id="lockAspectBtn"
+              class="mt-8 px-3 py-2 bg-gray-700 hover:bg-gray-600 border border-gray-600 rounded-lg text-gray-300 hover:text-blue-400 transition"
+              title="Lock aspect ratio"
+            >
+              <svg id="linkIcon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                <path d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.658 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+              </svg>
+            </button>
+            <div class="flex-1">
+              <label for="height" class="block text-sm font-medium text-gray-300 mb-2">Height (px)</label>
+              <input
+                id="height"
+                type="text"
+                placeholder="0"
+                class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-blue-500"
+              >
+              <p id="heightError" class="text-red-400 text-xs mt-1 hidden"></p>
+            </div>
+          </div>
+
+          <!-- Format Selector -->
+          <div>
+            <label class="block text-sm font-medium text-gray-300 mb-3">Output Format</label>
+            <div class="flex gap-2 flex-wrap">
+              <button
+                class="format-btn px-4 py-2 rounded-lg border-2 border-gray-600 text-gray-300 hover:border-blue-500 transition font-medium"
+                data-format="image/jpeg"
+                data-label="JPEG"
+              >
+                JPEG
+              </button>
+              <button
+                class="format-btn px-4 py-2 rounded-lg border-2 border-gray-600 text-gray-300 hover:border-blue-500 transition font-medium"
+                data-format="image/png"
+                data-label="PNG"
+              >
+                PNG
+              </button>
+              <button
+                class="format-btn px-4 py-2 rounded-lg border-2 border-gray-600 text-gray-300 hover:border-blue-500 transition font-medium"
+                data-format="image/webp"
+                data-label="WebP"
+              >
+                WebP
+              </button>
+              <button
+                class="format-btn px-4 py-2 rounded-lg border-2 border-gray-600 text-gray-300 hover:border-blue-500 transition font-medium"
+                data-format="image/avif"
+                data-label="AVIF"
+              >
+                AVIF
+              </button>
+            </div>
+            <p id="formatNote" class="text-gray-500 text-xs mt-2"></p>
+          </div>
+
+          <!-- Quality Slider -->
+          <div id="qualityContainer">
+            <label for="quality" class="block text-sm font-medium text-gray-300 mb-2">Quality</label>
+            <div class="flex gap-2 items-center">
+              <input
+                id="quality"
+                type="range"
+                min="1"
+                max="100"
+                value="80"
+                class="flex-1 h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
+              >
+              <div class="flex items-center gap-1">
+                <input
+                  id="qualityInput"
+                  type="text"
+                  value="80"
+                  class="w-16 px-2 py-1 bg-gray-700 border border-gray-600 rounded text-white text-center focus:outline-none focus:border-blue-500"
+                >
+                <span class="text-gray-300 text-sm">%</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Preview & Stats -->
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Preview -->
+            <div>
+              <label class="block text-sm font-medium text-gray-300 mb-2">Preview</label>
+              <div class="bg-gray-700 rounded-lg p-4 h-64 flex items-center justify-center overflow-auto">
+                <img id="preview" src="" alt="Preview" class="max-w-full max-h-full object-contain">
+              </div>
+            </div>
+
+            <!-- Stats -->
+            <div>
+              <label class="block text-sm font-medium text-gray-300 mb-2">Optimization Stats</label>
+              <div class="bg-gray-700 rounded-lg p-4 space-y-3 h-64 flex flex-col justify-between">
+                <div>
+                  <p class="text-gray-400 text-sm">Original Size</p>
+                  <div class="flex items-center gap-2">
+                    <p id="originalSize" class="text-white text-lg font-semibold">0 KB</p>
+                    <svg id="originalSizeIcon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-alert-triangle hidden text-yellow-400">
+                      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                      <path d="M12 9v4" />
+                      <path d="M10.363 3.591l-8.106 13.534a1.914 1.914 0 0 0 1.636 2.871h16.214a1.914 1.914 0 0 0 1.636 -2.87l-8.106 -13.536a1.914 1.914 0 0 0 -3.274 0" />
+                      <path d="M12 16h.01" />
+                    </svg>
+                  </div>
+                </div>
+                <div>
+                  <p class="text-gray-400 text-sm">Optimized Size</p>
+                  <div class="flex items-center gap-2">
+                    <p id="optimizedSize" class="text-white text-lg font-semibold">0 KB</p>
+                    <svg id="optimizedSizeIcon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-alert-triangle hidden text-yellow-400">
+                      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                      <path d="M12 9v4" />
+                      <path d="M10.363 3.591l-8.106 13.534a1.914 1.914 0 0 0 1.636 2.871h16.214a1.914 1.914 0 0 0 1.636 -2.87l-8.106 -13.536a1.914 1.914 0 0 0 -3.274 0" />
+                      <path d="M12 16h.01" />
+                    </svg>
+                  </div>
+                </div>
+                <div>
+                  <p class="text-gray-400 text-sm">Compression</p>
+                  <p id="compressionPercent" class="text-white text-lg font-semibold">0%</p>
+                </div>
+                <div id="loadingSpinner" class="hidden flex items-center">
+                  <svg class="animate-spin h-5 w-5 text-blue-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  <span class="ml-2 text-gray-400 text-sm">Processing...</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- File Size Warning -->
+          <div id="fileSizeWarning" class="hidden p-3 bg-yellow-900 border border-yellow-700 rounded-lg">
+            <p class="text-yellow-100 text-sm">⚠️ This image is large. Processing may take a moment.</p>
+          </div>
+
+          <!-- Filename Input -->
+          <div>
+            <label for="filename" class="block text-sm font-medium text-gray-300 mb-2">Filename</label>
+            <input
+              id="filename"
+              type="text"
+              placeholder="image-800x600"
+              class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-blue-500"
+            >
+            <p id="extensionNote" class="text-gray-500 text-xs mt-1">.jpg extension will be added automatically</p>
+          </div>
+
+          <!-- Download Button -->
+          <button
+            id="downloadBtn"
+            class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Download Optimized Image
+          </button>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <p class="text-center text-gray-500 text-xs mt-8">All processing happens in your browser. Your images are never uploaded to any server.</p>
+    </div>
+  </div>
+
+  <script>
+    // DOM Elements
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('fileInput');
+    const controlsContainer = document.getElementById('controlsContainer');
+    const widthInput = document.getElementById('width');
+    const heightInput = document.getElementById('height');
+    const qualityInput = document.getElementById('quality');
+    const qualityTextInput = document.getElementById('qualityInput');
+    const preview = document.getElementById('preview');
+    const downloadBtn = document.getElementById('downloadBtn');
+    const errorContainer = document.getElementById('errorContainer');
+    const errorMessage = document.getElementById('errorMessage');
+    const originalSizeText = document.getElementById('originalSize');
+    const optimizedSizeText = document.getElementById('optimizedSize');
+    const compressionPercent = document.getElementById('compressionPercent');
+    const originalSizeIcon = document.getElementById('originalSizeIcon');
+    const optimizedSizeIcon = document.getElementById('optimizedSizeIcon');
+    const loadingSpinner = document.getElementById('loadingSpinner');
+    const fileSizeWarning = document.getElementById('fileSizeWarning');
+    const lockAspectBtn = document.getElementById('lockAspectBtn');
+    const linkIcon = document.getElementById('linkIcon');
+    const filenameInput = document.getElementById('filename');
+    const formatBtns = document.querySelectorAll('.format-btn');
+    const formatNote = document.getElementById('formatNote');
+    const extensionNote = document.getElementById('extensionNote');
+    const qualityContainer = document.getElementById('qualityContainer');
+
+    // State
+    let currentImage = null;
+    let currentImageFile = null;
+    let originalImageSize = 0;
+    let aspectRatioLocked = false;
+    let aspectRatio = 1;
+    let originalFilename = '';
+    let selectedFormat = 'image/jpeg';
+    let supportedFormats = {
+      'image/jpeg': true,
+      'image/png': true,
+      'image/webp': false,
+      'image/avif': false
+    };
+
+    // Detect format support
+    function detectFormatSupport() {
+      const canvas = document.createElement('canvas');
+      canvas.width = 1;
+      canvas.height = 1;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#000000';
+      ctx.fillRect(0, 0, 1, 1);
+
+      let pendingTests = 2;
+
+      // Test WebP
+      canvas.toBlob((blob) => {
+        if (blob) {
+          supportedFormats['image/webp'] = true;
+        }
+        pendingTests--;
+        if (pendingTests === 0) updateFormatButtons();
+      }, 'image/webp', 0.5);
+
+      // Test AVIF
+      canvas.toBlob((blob) => {
+        if (blob) {
+          supportedFormats['image/avif'] = true;
+        }
+        pendingTests--;
+        if (pendingTests === 0) updateFormatButtons();
+      }, 'image/avif', 0.5);
+    }
+
+    // Update format button states
+    function updateFormatButtons() {
+      formatBtns.forEach((btn) => {
+        const format = btn.dataset.format;
+        const label = btn.dataset.label;
+        const supported = supportedFormats[format];
+
+        if (!supported && format !== 'image/jpeg' && format !== 'image/png') {
+          btn.disabled = true;
+          btn.classList.add('opacity-50', 'cursor-not-allowed');
+          btn.title = `${label} not supported in this browser`;
+        }
+
+        if (format === selectedFormat) {
+          btn.classList.add('bg-blue-600', 'border-blue-500', 'text-white');
+          btn.classList.remove('bg-gray-700', 'border-gray-600', 'text-gray-300', 'hover:border-blue-500');
+        } else {
+          btn.classList.remove('bg-blue-600', 'border-blue-500', 'text-white');
+          btn.classList.add('bg-gray-700', 'border-gray-600', 'text-gray-300', 'hover:border-blue-500');
+        }
+      });
+
+      updateFormatNote();
+      updateQualitySlider();
+    }
+
+    // Update format note
+    function updateFormatNote() {
+      const notes = {
+        'image/jpeg': 'Best for photos. No transparency support.',
+        'image/png': 'Lossless. Supports transparency. Larger file size.',
+        'image/webp': 'Modern format. Better compression than JPEG.',
+        'image/avif': 'Best compression. Newest format.'
+      };
+      formatNote.textContent = notes[selectedFormat] || '';
+      if (extensionNote) {
+        extensionNote.textContent = `.${getFileExtension(selectedFormat)} extension will be added automatically`;
+      }
+    }
+
+    // Update quality slider visibility
+    function updateQualitySlider() {
+      if (selectedFormat === 'image/png') {
+        qualityContainer.classList.add('hidden');
+      } else {
+        qualityContainer.classList.remove('hidden');
+      }
+    }
+
+    // Handle format selection
+    function selectFormat(format) {
+      const supported = supportedFormats[format];
+      if (supported || format === 'image/jpeg' || format === 'image/png') {
+        selectedFormat = format;
+        updateFormatButtons();
+        if (currentImage) processImage();
+      }
+    }
+
+    // Browser support check
+    function checkBrowserSupport() {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      if (!canvas || !ctx || !Blob) {
+        showError('Your browser does not support this application. Please use a modern browser.');
+        document.getElementById('dropZone').style.display = 'none';
+        return false;
+      }
+      return true;
+    }
+
+    // Show error message
+    function showError(message) {
+      errorMessage.textContent = message;
+      errorContainer.classList.remove('hidden');
+      setTimeout(() => {
+        errorContainer.classList.add('hidden');
+      }, 5000);
+    }
+
+    // Hide error message
+    function hideError() {
+      errorContainer.classList.add('hidden');
+    }
+
+    // Format bytes to human readable
+    function formatBytes(bytes) {
+      if (bytes === 0) return '0 Bytes';
+      const k = 1024;
+      const sizes = ['Bytes', 'KB', 'MB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
+    }
+
+    // Update lock button appearance
+    function updateLockButtonAppearance() {
+      const linkSvg = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" class="icon icon-tabler icons-tabler-filled icon-tabler-link w-5 h-5"><path stroke="none" d="M0 0h24v24H0z" fill="none" /><path d="M15.707 8.293a1 1 0 0 1 0 1.414l-6 6a1 1 0 1 1 -1.414 -1.414l6 -6a1 1 0 0 1 1.414 0" /><path d="M19.242 4.757c2.343 2.344 2.342 6.143 -.052 8.534l-.534 .464a1 1 0 1 1 -1.312 -1.51l.483 -.416a4 4 0 0 0 0 -5.657c-1.562 -1.563 -4.095 -1.563 -5.607 -.054l-.463 .536a1 1 0 1 1 -1.514 -1.308l.513 -.59a6 6 0 0 1 8.486 .001" /><path d="M6.75 10.338a1 1 0 0 1 -.088 1.411l-.483 .425a3.97 3.97 0 0 0 0 5.649a4.064 4.064 0 0 0 5.678 .038l.34 -.458a1 1 0 1 1 1.606 1.194l-.397 .534l-.1 .114a6.07 6.07 0 0 1 -8.533 0a5.97 5.97 0 0 1 -1.773 -4.247c0 -1.595 .638 -3.124 1.814 -4.284l.524 -.463a1 1 0 0 1 1.411 .087" /></svg>';
+
+      lockAspectBtn.innerHTML = linkSvg;
+
+      if (aspectRatioLocked) {
+        lockAspectBtn.classList.add('bg-blue-600', 'text-blue-100', 'border-blue-500');
+        lockAspectBtn.classList.remove('bg-gray-700', 'hover:bg-gray-600', 'text-gray-300', 'hover:text-blue-400', 'border-gray-600');
+      } else {
+        lockAspectBtn.classList.remove('bg-blue-600', 'text-blue-100', 'border-blue-500');
+        lockAspectBtn.classList.add('bg-gray-700', 'hover:bg-gray-600', 'text-gray-300', 'hover:text-blue-400', 'border-gray-600');
+      }
+    }
+
+    // Toggle aspect ratio lock
+    function toggleAspectRatioLock() {
+      if (!currentImage) return;
+      aspectRatioLocked = !aspectRatioLocked;
+      updateLockButtonAppearance();
+    }
+
+    // Validate inputs
+    function validateInputs() {
+      hideError();
+      let isValid = true;
+
+      const width = widthInput.value.trim();
+      const height = heightInput.value.trim();
+
+      // Validate width
+      if (!width || isNaN(width) || parseInt(width) < 1 || parseInt(width) > 10000) {
+        document.getElementById('widthError').textContent = 'Width must be 1-10,000 pixels';
+        document.getElementById('widthError').classList.remove('hidden');
+        isValid = false;
+      } else {
+        document.getElementById('widthError').classList.add('hidden');
+      }
+
+      // Validate height
+      if (!height || isNaN(height) || parseInt(height) < 1 || parseInt(height) > 10000) {
+        document.getElementById('heightError').textContent = 'Height must be 1-10,000 pixels';
+        document.getElementById('heightError').classList.remove('hidden');
+        isValid = false;
+      } else {
+        document.getElementById('heightError').classList.add('hidden');
+      }
+
+      return isValid;
+    }
+
+    // Get file extension for format
+    function getFileExtension(format) {
+      const extensions = {
+        'image/jpeg': 'jpg',
+        'image/png': 'png',
+        'image/webp': 'webp',
+        'image/avif': 'avif'
+      };
+      return extensions[format] || 'jpg';
+    }
+
+    // Update compression warning indicator
+    function updateCompressionWarning(originalSize, optimizedSize) {
+      if (optimizedSize > originalSize) {
+        // File got bigger - show warning
+        compressionPercent.classList.remove('text-white');
+        compressionPercent.classList.add('text-yellow-400');
+        originalSizeIcon.classList.remove('hidden');
+        optimizedSizeIcon.classList.remove('hidden');
+      } else {
+        // File got smaller - normal state
+        compressionPercent.classList.remove('text-yellow-400');
+        compressionPercent.classList.add('text-white');
+        originalSizeIcon.classList.add('hidden');
+        optimizedSizeIcon.classList.add('hidden');
+      }
+    }
+
+    // Update filename based on dimensions
+    function updateFilename() {
+      const width = widthInput.value;
+      const height = heightInput.value;
+      if (width && height && originalFilename) {
+        filenameInput.value = `${originalFilename}-${width}x${height}`;
+      }
+    }
+
+    // Process image
+    function processImage() {
+      if (!currentImage || !validateInputs()) return;
+
+      loadingSpinner.classList.remove('hidden');
+
+      const width = parseInt(widthInput.value);
+      const height = parseInt(heightInput.value);
+
+      try {
+        // Create canvas
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          showError('Canvas context initialization failed. Try reducing dimensions.');
+          loadingSpinner.classList.add('hidden');
+          return;
+        }
+
+        // Only fill white background for JPEG (doesn't support transparency)
+        if (selectedFormat === 'image/jpeg') {
+          ctx.fillStyle = '#FFFFFF';
+          ctx.fillRect(0, 0, width, height);
+        }
+
+        // Draw image stretched to dimensions
+        ctx.drawImage(currentImage, 0, 0, width, height);
+
+        // Convert to blob with selected format
+        const quality = selectedFormat === 'image/png' ? undefined : parseInt(qualityInput.value) / 100;
+        canvas.toBlob(
+          (blob) => {
+            if (!blob) {
+              showError('Failed to optimize image. Try reducing dimensions.');
+              loadingSpinner.classList.add('hidden');
+              return;
+            }
+
+            // Update preview and release previous Blob URL
+            if (preview.src && preview.src.startsWith('blob:')) {
+              URL.revokeObjectURL(preview.src);
+            }
+            const previewUrl = URL.createObjectURL(blob);
+            preview.src = previewUrl;
+
+            // Update stats
+            const optimizedSize = blob.size;
+            const compression = Math.round(((originalImageSize - optimizedSize) / originalImageSize) * 100);
+
+            originalSizeText.textContent = formatBytes(originalImageSize);
+            optimizedSizeText.textContent = formatBytes(optimizedSize);
+            compressionPercent.textContent = Math.max(0, compression) + '%';
+
+            // Update compression warning
+            updateCompressionWarning(originalImageSize, optimizedSize);
+
+            // Store blob for download
+            currentImage.optimizedBlob = blob;
+
+            loadingSpinner.classList.add('hidden');
+          },
+          selectedFormat,
+          quality
+        );
+      } catch (error) {
+        showError('An error occurred while processing the image. Try reducing dimensions.');
+        loadingSpinner.classList.add('hidden');
+      }
+    }
+
+    // Handle file upload
+    function handleFileUpload(file) {
+      hideError();
+
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        showError('Please upload a valid image file (JPG, PNG, WebP, GIF).');
+        return;
+      }
+
+      // Validate file size
+      if (file.size > 10 * 1024 * 1024) {
+        showError('Image is too large. Maximum file size is 10MB.');
+        return;
+      }
+
+      // Show warning for large files
+      if (file.size > 5 * 1024 * 1024) {
+        fileSizeWarning.classList.remove('hidden');
+      } else {
+        fileSizeWarning.classList.add('hidden');
+      }
+
+      originalImageSize = file.size;
+      currentImageFile = file;
+
+      // Extract original filename without extension
+      const filenameWithExt = file.name;
+      originalFilename = filenameWithExt.substring(0, filenameWithExt.lastIndexOf('.')) || filenameWithExt;
+
+      // Read and display image
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          currentImage = img;
+
+          // Calculate and store aspect ratio
+          aspectRatio = img.naturalWidth / img.naturalHeight;
+          aspectRatioLocked = true;
+          updateLockButtonAppearance();
+
+          // Pre-fill dimensions
+          widthInput.value = img.naturalWidth;
+          heightInput.value = img.naturalHeight;
+
+          // Update filename
+          updateFilename();
+
+          // Show controls
+          controlsContainer.classList.remove('hidden');
+
+          // Process with defaults
+          processImage();
+        };
+        img.onerror = () => {
+          showError('Failed to load image. Please try another file.');
+        };
+        img.src = e.target.result;
+      };
+      reader.onerror = () => {
+        showError('Failed to read image file.');
+      };
+      reader.readAsDataURL(file);
+    }
+
+    // Download optimized image
+    function downloadImage() {
+      if (!currentImage || !currentImage.optimizedBlob) {
+        showError('No optimized image available.');
+        return;
+      }
+
+      const url = URL.createObjectURL(currentImage.optimizedBlob);
+      const a = document.createElement('a');
+      a.href = url;
+      const filename = filenameInput.value.trim() || 'optimized';
+      const extension = getFileExtension(selectedFormat);
+      a.download = `${filename}.${extension}`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    // Event Listeners
+    dropZone.addEventListener('click', () => fileInput.click());
+
+    dropZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropZone.classList.add('border-blue-500', 'bg-gray-600');
+    });
+
+    dropZone.addEventListener('dragleave', () => {
+      dropZone.classList.remove('border-blue-500', 'bg-gray-600');
+    });
+
+    dropZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropZone.classList.remove('border-blue-500', 'bg-gray-600');
+      const files = e.dataTransfer.files;
+      if (files.length > 0) {
+        handleFileUpload(files[0]);
+      }
+    });
+
+    fileInput.addEventListener('change', (e) => {
+      if (e.target.files.length > 0) {
+        handleFileUpload(e.target.files[0]);
+      }
+    });
+
+    qualityInput.addEventListener('input', (e) => {
+      qualityTextInput.value = e.target.value;
+      if (currentImage) processImage();
+    });
+
+    qualityTextInput.addEventListener('input', (e) => {
+      let value = e.target.value;
+      if (value === '') return;
+
+      let numValue = parseInt(value);
+      if (isNaN(numValue)) {
+        qualityTextInput.value = qualityInput.value;
+        return;
+      }
+
+      if (numValue < 1) numValue = 1;
+      if (numValue > 100) numValue = 100;
+
+      qualityInput.value = numValue;
+      qualityTextInput.value = numValue;
+      if (currentImage) processImage();
+    });
+
+    widthInput.addEventListener('input', () => {
+      if (currentImage && aspectRatioLocked) {
+        const width = parseInt(widthInput.value);
+        if (!isNaN(width) && width > 0) {
+          const newHeight = Math.round(width / aspectRatio);
+          heightInput.value = newHeight;
+        }
+      }
+      updateFilename();
+      if (currentImage) processImage();
+    });
+
+    heightInput.addEventListener('input', () => {
+      if (currentImage && aspectRatioLocked) {
+        const height = parseInt(heightInput.value);
+        if (!isNaN(height) && height > 0) {
+          const newWidth = Math.round(height * aspectRatio);
+          widthInput.value = newWidth;
+        }
+      }
+      updateFilename();
+      if (currentImage) processImage();
+    });
+
+    lockAspectBtn.addEventListener('click', toggleAspectRatioLock);
+
+    downloadBtn.addEventListener('click', downloadImage);
+
+    formatBtns.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        selectFormat(btn.dataset.format);
+      });
+    });
+
+    // Initialize
+    if (checkBrowserSupport()) {
+      detectFormatSupport();
+      updateFormatButtons();
+      console.log('Imagify initialized successfully');
+    }
+  </script>
+</body>
+</html>
