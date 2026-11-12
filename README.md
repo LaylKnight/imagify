@@ -4,6 +4,16 @@
 
 ---
 
+## 📸 Screenshots
+
+### Upload Interface
+![Imagify Upload View](./screenshots/upload-view.png)
+
+### Live Optimization & Compression Stats
+![Imagify Optimization Preview](./screenshots/optimize-preview.png)
+
+---
+
 ## ✨ Key Features
 
 - **100% Client-Side & Private**: Zero backend servers or external API calls. Your images never leave your device.
